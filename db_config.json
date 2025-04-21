@@ -1,0 +1,20 @@
+{
+  "dbs": {
+    "std_prj": {
+      "dialect": "mysql+pymysql",
+      "username": "root",
+      "password": "shrijan123",
+      "host": "127.0.0.1",
+      "port": "3306",
+      "database": "std_prj"
+    },
+    "api_prj": {
+      "dialect": "mysql+pymysql",
+      "username": "root",
+      "password": "shrijan123",
+      "host": "127.0.0.1",
+      "port": "3306",
+      "database": "api_prj"
+    }
+  }
+}
