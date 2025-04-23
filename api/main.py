@@ -1,24 +1,21 @@
 from typing import Union, Dict, Any
 
+from fastapi import Depends
 from fastapi import FastAPI
 
-from api_deps import generic_fetch, generic_save, generic_login
-from services import decode_token, refresh_get_access_token
-from fastapi import Depends
+from .api_deps import generic_fetch, generic_save, generic_login
+from .services import decode_token, refresh_get_access_token
 
 app = FastAPI()
 
 
-
 @app.get("/index/hi")
 async def read_root():
-    print("inside read_root")
     return {"Hello": "World"}
 
 
 @app.get("/index/{name}")
 def read_root_1(name: str):
-    print("inside read_root_1")
     return {"name": name}
 
 
@@ -31,13 +28,12 @@ async def read_item(item_id: int, q: Union[str, None] = None):
 async def fetch(payload: Dict[str, Any], user_id: str or dict = Depends(decode_token)):
     message = generic_fetch(payload)
 
-    return {"id": user_id, "data": message}
+    return message
 
 
 @app.post("/save")
 async def save(payload: Dict[str, Any]):
     message = generic_save(payload)
-
     return {"data": message}
 
 
@@ -50,7 +46,6 @@ async def login(payload: Dict[str, Any]):
 
 @app.post("/refresh")
 def refresh(payload: Dict[str, Any]):
-
     refresh_token = payload.get("payload").get("refresh_token")
     new_access_token = refresh_get_access_token(refresh_token)
 

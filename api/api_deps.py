@@ -1,12 +1,15 @@
 from pydantic import ValidationError
 
-from api_config import CREATE_BATCH_SIZE
-from db_conn import EngineController, EngineRegistry
-from fetch import Fetch
-from payload_models import FetchPayload, SavePayload
-from services import handle_save_input, insert_records, create_tokens
+from .api_config import CREATE_BATCH_SIZE
+from .db_conn import EngineController, EngineRegistry
+from .fetch import Fetch
+from .payload_models import FetchPayload, SavePayload
+from .services import handle_save_input, insert_records, create_tokens
+from .utils import error_response, success_response
 
-controller = EngineController()
+
+def get_controller():
+    return EngineController()
 
 
 def generic_fetch(payload):
@@ -19,7 +22,7 @@ def generic_fetch(payload):
             error_loc = e.errors()[0].get("loc")
             error = f"{error_msg}{error_loc}"
 
-            return {"error": error, "code": "GA-001"}
+            return error_response(error=error, code="GA-001")
 
         validated_payload_data = validated_payload.payload
 
@@ -33,13 +36,10 @@ def generic_fetch(payload):
         distinct = validated_payload_data.distinct
 
         input_db_name, table_name = model_name.split(".")
-
+        controller = get_controller()
         eng = EngineRegistry(db_name=input_db_name, controller=controller)
 
-        try:
-            model = eng.check_model(model_name)
-        except Exception as e:
-            return {"error": e.args[0]["error"], "code": e.args[0]["code"]}
+        model = eng.check_model(input_db_name=input_db_name, table_name=table_name)
 
         fetch_config = {
             "model": model,
@@ -65,13 +65,12 @@ def generic_fetch(payload):
 
         data = f.parse_results(result)
 
-        return data
+        return success_response(data=data, message="Fetch Success")
 
     except Exception as e:
-        if e.args:
-            return {"error": e.args[0]["error"], "code": e.args[0]["code"]}
-        else:
-            return {"error": str(e), "code": "GA-002"}
+        return error_response(
+            error=e.detail["error"], code=e.detail["code"], status_code=e.status_code
+        )
 
 
 def generic_save(payload):
@@ -84,26 +83,24 @@ def generic_save(payload):
             error_loc = e.errors()[0].get("loc")
             error = f"{error_msg}{error_loc}"
 
-            return {"error": error, "code": "GA-003"}
+            return error_response(error=error, code="GA-003")
 
         model_name = validated_payload.payload.modelName
         rec_id = validated_payload.payload.id
         saveInput = validated_payload.payload.saveInput
 
         if len(saveInput) > CREATE_BATCH_SIZE:
-            return {
-                "error": f"Only {CREATE_BATCH_SIZE} records allowed at a time.",
-                "code": "GA-004",
-            }
+            return error_response(
+                error=f"Only {CREATE_BATCH_SIZE} records allowed at a time.",
+                code="GA-004",
+            )
 
         input_db_name, table_name = model_name.split(".")
 
+        controller = get_controller()
         eng = EngineRegistry(db_name=input_db_name, controller=controller)
 
-        try:
-            model = eng.check_model(model_name)
-        except Exception as e:
-            return {"error": e.args[0]["error"], "code": e.args[0]["code"]}
+        model = eng.check_model(input_db_name=input_db_name, table_name=table_name)
 
         action = "saved" if not rec_id else "updated"
 
@@ -111,14 +108,15 @@ def generic_save(payload):
 
         session = eng.get_session()
         result = insert_records(statements, session)
+        if action == "updated":  # For update statement
+            result = [rec_id]
 
-        return {
-            "data": result,
-            "message": f"{action} successfully",
-        }
+        return success_response(data=result, message=f"{action} successfully")
 
     except Exception as e:
-        return {"error": e.args[0]["error"], "code": e.args[0]["code"]}
+        return error_response(
+            error=e.detail["error"], code=e.detail["code"], status_code=e.status_code
+        )
 
 
 def generic_login(payload):

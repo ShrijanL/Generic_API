@@ -61,6 +61,13 @@ class FetchInnerPayload(BaseModel):
                     raise ValueError("Multiple filters not supported")
         return v
 
+    @field_validator("modelName")
+    def validate_modelName(cls, v):
+        if v:
+            if not "." in v or v.count(".") != 1:
+                raise ValueError("modelName must be in format as 'db.table'.")
+        return v
+
 
 class FetchPayload(BaseModel):
     # payload: Dict[str,FetchInnerPayload]
@@ -72,6 +79,13 @@ class SaveInnerPayload(BaseModel):
     modelName: str
     id: Optional[Union[int, str]] = None
     saveInput: JsonValue
+
+    @field_validator("modelName")
+    def validate_modelName(cls, v):
+        if v:
+            if not "." in v or v.count(".") != 1:
+                raise ValueError("modelName must be in format as 'db.table'.")
+        return v
 
 
 class SavePayload(BaseModel):

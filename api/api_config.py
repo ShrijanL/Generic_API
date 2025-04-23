@@ -11,7 +11,6 @@ CREATE_BATCH_SIZE = int(
     _config.get("SAVE_SETTINGS", "CREATE_BATCH_SIZE", fallback="10")
 )
 
-
 # JWT_SETTINGS
 SECRET_KEY = str(
     _config.get(

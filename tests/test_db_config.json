@@ -1,0 +1,8 @@
+{
+  "dbs": {
+    "test_db": {
+      "dialect": "sqlite",
+      "database": "test_db"
+    }
+  }
+}

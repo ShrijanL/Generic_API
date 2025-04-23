@@ -1,7 +1,38 @@
 from typing import Any, Optional
 
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import create_model, Field
 from pydantic.config import ConfigDict
+from starlette import status
+
+
+def error_response(
+    error: str, code: str, status_code: status = status.HTTP_400_BAD_REQUEST
+):
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "error": error,
+            "code": code,
+        },
+    )
+
+
+def success_response(data: str, message: str, status_code: status = status.HTTP_200_OK):
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "data": data,
+            "message": message,
+        },
+    )
+
+
+def raise_exception(
+    error: str, code: str, status_code: status = status.HTTP_400_BAD_REQUEST
+):
+    raise HTTPException(status_code=status_code, detail={"error": error, "code": code})
 
 
 def convert_to_pydantic_model(model):

@@ -4,7 +4,7 @@ from typing import Dict
 
 from sqlalchemy import select, and_, or_, asc, desc
 
-from utils import configure_joins
+from .utils import configure_joins, raise_exception
 
 
 class Fetch:
@@ -25,28 +25,23 @@ class Fetch:
         if self.fields:
             for fld in self.fields:
                 if not hasattr(self.model.c, fld):
-                    raise Exception(
-                        {"error": f"Invalid fields in fields, {fld}", "code": "GA-010"}
+                    raise_exception(
+                        error=f"Invalid fields in fields, {fld}", code="GA-010"
                     )
 
         if self.filters:
             for item in self.filters:
                 for val in item.value:
                     if not self.model.c[item.name].type.python_type == type(val):
-                        raise Exception(
-                            {
-                                "error": f"Invalid value for filter:[{item.name}={val}]",
-                                "code": "GA-011",
-                            }
+                        raise_exception(
+                            error=f"Invalid value for filter:[{item.name}={val}]",
+                            code="GA-011",
                         )
 
         if self.sort:
             if not hasattr(self.model.c, self.sort.field):
-                raise Exception(
-                    {
-                        "error": f"Invalid field for sort, {self.sort.field}",
-                        "code": "GA-012",
-                    }
+                raise_exception(
+                    error=f"Invalid field for sort, {self.sort.field}", code="GA-012"
                 )
 
     def apply_filters(self):
