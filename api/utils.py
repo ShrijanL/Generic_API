@@ -51,9 +51,15 @@ def convert_to_pydantic_model(model):
         except AttributeError:
             pass
 
-        default = None
+        default = ...
         if column.nullable:
             python_type = Optional[python_type]
+            default = None
+
+        # if col has a def value, make it optional.
+        if column.default or column.server_default:
+            python_type = Optional[python_type]
+            default = None
 
         if column.default is not None and hasattr(column.default, "arg"):
             default = column.default.arg
@@ -83,3 +89,16 @@ def configure_joins(query, joins, engine):
         query = query.join(value_table, key == value)
 
     return query
+
+
+def check_rec_to_be_updated(rec_id, session, model):
+    """
+    Checks if the records to be updated exists or not.
+    :param model:
+    :param rec_id:
+    :param session:
+    :return:
+    """
+    rec = session.query(model).filter_by(id=rec_id).first()
+    if not rec:
+        raise_exception(error=f"Not yet record, {rec_id}", code="GA-020")

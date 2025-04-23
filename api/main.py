@@ -34,7 +34,8 @@ async def fetch(payload: Dict[str, Any], user_id: str or dict = Depends(decode_t
 @app.post("/save")
 async def save(payload: Dict[str, Any]):
     message = generic_save(payload)
-    return {"data": message}
+
+    return message
 
 
 @app.post("/login")

@@ -5,7 +5,7 @@ from .db_conn import EngineController, EngineRegistry
 from .fetch import Fetch
 from .payload_models import FetchPayload, SavePayload
 from .services import handle_save_input, insert_records, create_tokens
-from .utils import error_response, success_response
+from .utils import error_response, success_response, check_rec_to_be_updated
 
 
 def get_controller():
@@ -104,9 +104,14 @@ def generic_save(payload):
 
         action = "saved" if not rec_id else "updated"
 
+        session = eng.get_session()
+
+        # Check is rec with rec_id exists or not.
+        if rec_id is not None:
+            check_rec_to_be_updated(rec_id, session, model)
+
         statements = handle_save_input(model, rec_id, saveInput)
 
-        session = eng.get_session()
         result = insert_records(statements, session)
         if action == "updated":  # For update statement
             result = [rec_id]

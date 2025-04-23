@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text, bindparam
 
 from fixtures import engine_controller, db_session, client
-from instances import class1, class2, class3, customer3
+from instances import class1, class2, class3, customer3, customer1
 from utils import create_test_records
 
 
@@ -53,12 +53,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 200
-        assert res_body["message"] == "saved successfully"
-        assert res_body["data"] == [1, 2]
+        assert response.status_code == 200
+        assert res["message"] == "saved successfully"
+        assert res["data"] == [1, 2]
 
     def test_save_success_with_fk(self, client, db_session):
         """
@@ -101,12 +99,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 200
-        assert res_body["message"] == "saved successfully"
-        assert res_body["data"] == [1, 2]
+        assert response.status_code == 200
+        assert res["message"] == "saved successfully"
+        assert res["data"] == [1, 2]
 
         # Check if fk values are correctly inserted or not
         stmt = text(
@@ -149,15 +145,13 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
+        assert response.status_code == 400
         assert (
-            res_body["error"]
+            res["error"]
             == "Value error, modelName must be in format as 'db.table'.('payload', 'modelName')"
         )
-        assert res_body["code"] == "GA-003"
+        assert res["code"] == "GA-003"
 
     def test_update_record_success(self, client, db_session):
         """
@@ -192,12 +186,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_body["message"] == "updated successfully"
-        assert res_body["data"] == [3]
-        assert res_data["status_code"] == 200
+        assert res["message"] == "updated successfully"
+        assert res["data"] == [3]
+        assert response.status_code == 200
 
         # Check if fk values are correctly inserted or not
         stmt = text("SELECT name FROM customers WHERE id = :id").bindparams(
@@ -231,12 +223,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "DB not found."
-        assert res_body["code"] == "GA-006"
+        assert response.status_code == 400
+        assert res["error"] == "DB not found."
+        assert res["code"] == "GA-006"
 
     def test_create_record_with_incorrect_table(self, client):
         """
@@ -262,12 +252,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "customers1 not found in DB test_db"
-        assert res_body["code"] == "GA-007"
+        assert response.status_code == 400
+        assert res["error"] == "customers1 not found in DB test_db"
+        assert res["code"] == "GA-007"
 
     def test_invalid_payload_format(self, client):
         """
@@ -292,12 +280,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Field required('payload', 'modelName')"
-        assert res_body["code"] == "GA-003"
+        assert response.status_code == 400
+        assert res["error"] == "Field required('payload', 'modelName')"
+        assert res["code"] == "GA-003"
 
     def test_model_name_not_str(self, client):
         """
@@ -323,15 +309,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert (
-            res_body["error"]
-            == "Input should be a valid string('payload', 'modelName')"
-        )
-        assert res_body["code"] == "GA-003"
+        assert response.status_code == 400
+        assert res["error"] == "Input should be a valid string('payload', 'modelName')"
+        assert res["code"] == "GA-003"
 
     def test_recs_more_than_limit(self, client):
         """
@@ -447,17 +428,16 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Only 10 records allowed at a time."
-        assert res_body["code"] == "GA-004"
+        assert response.status_code == 400
+        assert res["error"] == "Only 10 records allowed at a time."
+        assert res["code"] == "GA-004"
 
-    def test_update_multiple_records(self, client):
+    def test_update_multiple_records(self, client, db_session):
         """
         update_multiple_records
         """
+        create_test_records(db_session, class1, customer1)
 
         payload = {
             "payload": {
@@ -490,12 +470,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_body["error"] == "Only 1 record to update at once"
-        assert res_body["code"] == "GA-013"
-        assert res_data["status_code"] == 400
+        assert res["error"] == "Only 1 record to update at once"
+        assert res["code"] == "GA-013"
+        assert response.status_code == 400
 
     def test_invalid_field_in_save_input(self, client):
         """
@@ -524,12 +502,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Extra inputs are not permitted. ('ABCD',)"
-        assert res_body["code"] == "GA-014"
+        assert response.status_code == 400
+        assert res["error"] == "Extra inputs are not permitted. ('ABCD',)"
+        assert res["code"] == "GA-014"
 
     def test_invalid_data_type(self, client):
         """
@@ -558,12 +534,13 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Input should be a valid boolean, unable to interpret input. ('is_active',)"
-        assert res_body["code"] == "GA-014"
+        assert response.status_code == 400
+        assert (
+            res["error"]
+            == "Input should be a valid boolean, unable to interpret input. ('is_active',)"
+        )
+        assert res["code"] == "GA-014"
 
     def test_missing_required_field(self, client):
         """
@@ -592,12 +569,10 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Field required. ('email',)"
-        assert res_body["code"] == "GA-014"
+        assert response.status_code == 400
+        assert res["error"] == "Field required. ('email',)"
+        assert res["code"] == "GA-014"
 
     def test_update_unknown_record(self, client):
         """
@@ -626,9 +601,7 @@ class TestGenericSave:
 
         response = client.post("/save", json=payload)
         res = response.json()
-        res_data = res["data"]
-        res_body = json.loads(res_data["body"])
 
-        assert res_data["status_code"] == 400
-        assert res_body["error"] == "Field required. ('email',)"
-        assert res_body["code"] == "GA-014"
+        assert response.status_code == 400
+        assert res["error"] == "Not yet record, 1000"
+        assert res["code"] == "GA-020"

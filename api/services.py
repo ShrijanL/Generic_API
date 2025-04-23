@@ -38,15 +38,14 @@ def handle_save_input(model, rec_id, saveInput):
         for fld, value in valid_rec:
             column = getattr(model.c, fld, None)
 
-            if (
-                column.default
+            # only append field and value to insert statement if following condition
+            if not (
+                (column.default or column.server_default)
                 and not value
                 and value is not False
                 and not column.nullable
             ):
-                save_item.pop(fld)
-
-            fld_values[fld] = value
+                fld_values[fld] = value
 
         if rec_id:
             insert_statements.append(
