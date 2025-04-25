@@ -26,11 +26,15 @@ class Fetch:
             for fld in self.fields:
                 if not hasattr(self.model.c, fld):
                     raise_exception(
-                        error=f"Invalid fields in fields, {fld}", code="GA-010"
+                        error=f"Invalid field in fields, {fld}", code="GA-010"
                     )
 
         if self.filters:
             for item in self.filters:
+                if not hasattr(self.model.c, item.name):
+                    raise_exception(
+                        error=f"Invalid name in filters, {item.name}", code="GA-021"
+                    )
                 for val in item.value:
                     if not self.model.c[item.name].type.python_type == type(val):
                         raise_exception(
@@ -68,15 +72,15 @@ class Fetch:
             elif operator == "in":
                 condition = col.in_(value)
             elif operator == "not":
-                condition = col != value
+                condition = col != value[0]
             elif operator == "gt":
-                condition = col > value
+                condition = col > value[0]
             elif operator == "lt":
-                condition = col < value
+                condition = col < value[0]
             elif operator == "like":
-                condition = col.like(value)
+                condition = col.like(value[0])
             elif operator == "ilike":
-                condition = col.ilike(value)
+                condition = col.ilike(value[0])
 
             if not total_condition:
                 total_condition = condition

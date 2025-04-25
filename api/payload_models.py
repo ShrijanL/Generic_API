@@ -1,7 +1,26 @@
 from enum import Enum
 from typing import Optional, List, Any, Dict, Union
 
-from pydantic import BaseModel, Field, field_validator, JsonValue
+from pydantic import (
+    ConfigDict,
+    BaseModel,
+    Field,
+    field_validator,
+    JsonValue,
+    SecretStr,
+    EmailStr,
+)
+
+
+class PydanticConfigV1:
+    """
+    Custom configuration for pydantic objects.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",  # Forbid extra fields
+        str_strip_whitespace=True,  # Remove white spaces
+    )
 
 
 ## Fetch
@@ -25,19 +44,19 @@ class OrderByEnum(str, Enum):
     desc = "desc"
 
 
-class FetchSort(BaseModel):
+class FetchSort(BaseModel, PydanticConfigV1):
     field: str
     order_by: OrderByEnum
 
 
-class FetchFilter(BaseModel):
+class FetchFilter(BaseModel, PydanticConfigV1):
     operator: OperatorByEnum
     name: str
     value: List[Any]
     operation: Optional[OperationByEnum] = OperationByEnum.AND  # default value
 
 
-class FetchInnerPayload(BaseModel):
+class FetchInnerPayload(BaseModel, PydanticConfigV1):
     modelName: str
     fields: List[str]
     filters: List[FetchFilter]
@@ -69,13 +88,13 @@ class FetchInnerPayload(BaseModel):
         return v
 
 
-class FetchPayload(BaseModel):
+class FetchPayload(BaseModel, PydanticConfigV1):
     # payload: Dict[str,FetchInnerPayload]
     payload: FetchInnerPayload
 
 
 ## Save
-class SaveInnerPayload(BaseModel):
+class SaveInnerPayload(BaseModel, PydanticConfigV1):
     modelName: str
     id: Optional[Union[int, str]] = None
     saveInput: JsonValue
@@ -88,5 +107,15 @@ class SaveInnerPayload(BaseModel):
         return v
 
 
-class SavePayload(BaseModel):
+class SavePayload(BaseModel, PydanticConfigV1):
     payload: SaveInnerPayload
+
+
+# Login
+class LoginInnerPayload(BaseModel, PydanticConfigV1):
+    email: EmailStr
+    password: SecretStr
+
+
+class LoginPayload(BaseModel, PydanticConfigV1):
+    payload: LoginInnerPayload

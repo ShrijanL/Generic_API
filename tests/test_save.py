@@ -1,4 +1,3 @@
-import json
 from datetime import date
 
 import pytest
@@ -6,7 +5,7 @@ from sqlalchemy import text, bindparam
 
 from fixtures import engine_controller, db_session, client
 from instances import class1, class2, class3, customer3, customer1
-from utils import create_test_records
+from utils import create_test_records, get_access_token
 
 
 class TestGenericSave:
@@ -24,6 +23,9 @@ class TestGenericSave:
         :param client:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
@@ -51,7 +53,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 200
@@ -65,6 +67,8 @@ class TestGenericSave:
         :param db_session:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
 
         create_test_records(db_session, class1, class2)
 
@@ -97,7 +101,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 200
@@ -116,6 +120,8 @@ class TestGenericSave:
         """
         No DB name in payload
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "customers",
@@ -143,7 +149,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -160,6 +166,8 @@ class TestGenericSave:
         :param db_session:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         create_test_records(db_session, class3, customer3)
 
         assert customer3.id == 3
@@ -184,7 +192,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert res["message"] == "updated successfully"
@@ -203,6 +211,8 @@ class TestGenericSave:
         """
         User has sent correct payload format.
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db1.customers",
@@ -221,7 +231,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -232,6 +242,8 @@ class TestGenericSave:
         """
         User has sent correct payload format.
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers1",
@@ -250,7 +262,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -261,6 +273,8 @@ class TestGenericSave:
         """
         User has sent incorrect payload format.
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "id": None,
@@ -278,17 +292,51 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
         assert res["error"] == "Field required('payload', 'modelName')"
         assert res["code"] == "GA-003"
 
+    def test_extra_field_in_payload(self, client):
+        """
+        User has sent extra field in payload.
+        """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "payload": {
+                "modelName": "test_db.customers",
+                "id": None,
+                "dummy": "hello",
+                "saveInput": [
+                    {
+                        "name": "test1",
+                        "dob": date(2004, 6, 12).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "741852",
+                        "address": "Hyd",
+                        "zip_code": "555",
+                        "status": "alive",
+                    }
+                ],
+            }
+        }
+
+        response = client.post("/save", json=payload, headers=headers)
+        res = response.json()
+
+        assert response.status_code == 400
+        assert res["error"] == "Extra inputs are not permitted('payload', 'dummy')"
+        assert res["code"] == "GA-003"
+
     def test_model_name_not_str(self, client):
         """
         User has sent incorrect modelName type.
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": 123,
@@ -307,7 +355,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -318,6 +366,8 @@ class TestGenericSave:
         """
         Payload consists more than `CREATE_BATCH_SIZE` recs
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
@@ -426,7 +476,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -437,6 +487,8 @@ class TestGenericSave:
         """
         update_multiple_records
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         create_test_records(db_session, class1, customer1)
 
         payload = {
@@ -468,7 +520,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert res["error"] == "Only 1 record to update at once"
@@ -481,6 +533,8 @@ class TestGenericSave:
         :param client:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
@@ -500,7 +554,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -513,6 +567,8 @@ class TestGenericSave:
         :param client:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
@@ -532,7 +588,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -548,6 +604,8 @@ class TestGenericSave:
         :param client:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
@@ -567,7 +625,7 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
@@ -580,10 +638,12 @@ class TestGenericSave:
         :param client:
         :return:
         """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "payload": {
                 "modelName": "test_db.customers",
-                "id": 1000,
+                "id": 1000,  # ID that does not exist
                 "saveInput": [
                     {
                         "name": "test1",
@@ -599,9 +659,126 @@ class TestGenericSave:
             }
         }
 
-        response = client.post("/save", json=payload)
+        response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
         assert response.status_code == 400
         assert res["error"] == "Not yet record, 1000"
         assert res["code"] == "GA-020"
+
+    def test_user_active_boolean_field_set_false(self, client):
+        """
+        Scenario where Boolean value (False) is not
+        accounted as no value by user.
+        """
+        token = get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "payload": {
+                "modelName": "test_db.customers",
+                "id": None,
+                "saveInput": [
+                    {
+                        "name": "test1",
+                        "dob": date(2004, 6, 12).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "741852",
+                        "address": "Hyd",
+                        "zip_code": "555",
+                        "status": "alive",
+                        "is_active": False,
+                    }
+                ],
+            }
+        }
+
+        response = client.post("/save", json=payload, headers=headers)
+        res = response.json()
+
+        assert response.status_code == 200
+        assert res["message"] == "saved successfully"
+        assert res["data"] == [1]
+
+    def test_no_header(self, client, db_session):
+        """
+        No header
+        :param client:
+        :return:
+        """
+        payload = {
+            "payload": {
+                "modelName": "test_db.customers",
+                "id": None,
+                "saveInput": [
+                    {
+                        "name": "test1",
+                        "dob": date(2004, 6, 12).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "741852",
+                        "address": "Hyd",
+                        "zip_code": "555",
+                        "status": "alive",
+                    },
+                    {
+                        "name": "test2",
+                        "dob": date(2004, 5, 22).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "852147",
+                        "address": "Bombay",
+                        "zip_code": "777",
+                        "status": "alive",
+                    },
+                ],
+            }
+        }
+
+        response = client.post("/save", json=payload)
+        res = response.json()
+
+        assert response.status_code == 400
+        assert res["detail"]["error"] == "Authorization token is missing or invalid."
+        assert res["detail"]["code"] == "GA-020"
+
+    def test_invalid_token_format(self, client, db_session):
+        """
+        Invalid header / token format
+        :param client:
+        :return:
+        """
+        token = get_access_token()
+
+        headers = {"Authorization": f"HAHAHA {token}"}
+
+        payload = {
+            "payload": {
+                "modelName": "test_db.customers",
+                "id": None,
+                "saveInput": [
+                    {
+                        "name": "test1",
+                        "dob": date(2004, 6, 12).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "741852",
+                        "address": "Hyd",
+                        "zip_code": "555",
+                        "status": "alive",
+                    },
+                    {
+                        "name": "test2",
+                        "dob": date(2004, 5, 22).isoformat(),
+                        "email": "test1@mail.com",
+                        "phone_no": "852147",
+                        "address": "Bombay",
+                        "zip_code": "777",
+                        "status": "alive",
+                    },
+                ],
+            }
+        }
+
+        response = client.post("/save", json=payload, headers=headers)
+        res = response.json()
+
+        assert response.status_code == 400
+        assert res["detail"]["error"] == "Authorization token is missing or invalid."
+        assert res["detail"]["code"] == "GA-020"

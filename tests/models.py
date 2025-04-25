@@ -34,5 +34,6 @@ class Customer(Base):
     zip_code = Column(String(6), nullable=False)
     status = Column(String(5))
     is_active = Column(Boolean, nullable=True)
+    experience = Column(Integer, nullable=True)
 
     class_student = Column(Integer, ForeignKey("student_classes.id"), nullable=True)

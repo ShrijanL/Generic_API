@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from api.db_conn import EngineController
 from tests import models
+import shutil
 
 Base = models.Base
 
@@ -25,9 +26,6 @@ def engine_controller():
 
     # delete tables in test db
     Base.metadata.drop_all(bind=controller.engines["test_db"])
-
-    if os.path.exists("test.db"):
-        os.remove("test.db")
 
 
 @pytest.fixture(scope="function")

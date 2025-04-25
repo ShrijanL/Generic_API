@@ -3,7 +3,6 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import insert, update, inspect
 
 from .api_config import (
@@ -11,9 +10,13 @@ from .api_config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     algorithm,
 )
-from .utils import convert_to_pydantic_model, raise_exception
+from .utils import (
+    convert_to_pydantic_model,
+    raise_exception,
+    CustomOAuth2PasswordBearer,
+)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = CustomOAuth2PasswordBearer(tokenUrl="/login")
 
 
 def handle_save_input(model, rec_id, saveInput):
@@ -75,7 +78,7 @@ def insert_records(statements, session):
     return all_res
 
 
-def create_tokens(user_id: int, refresh: bool = False):
+def create_tokens(user_id: int, require_refresh: bool = True):
     issued_at = datetime.utcnow()
 
     access_expires_delta = issued_at + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -97,10 +100,11 @@ def create_tokens(user_id: int, refresh: bool = False):
     }
     refresh_token = jwt.encode(refresh_encode, SECRET_KEY, algorithm=algorithm)
 
-    if not refresh:
-        return access_token, refresh_token
-    else:
+    # send only access token when refresh is not required.
+    if not require_refresh:
         return access_token
+
+    return access_token, refresh_token
 
 
 def refresh_get_access_token(refresh_token: str):
@@ -109,7 +113,7 @@ def refresh_get_access_token(refresh_token: str):
 
         user_id = decode_refresh.get("sub")
 
-        new_access_token = create_tokens(user_id=user_id, refresh=True)
+        new_access_token = create_tokens(user_id=user_id, require_refresh=False)
 
         return new_access_token
 
@@ -120,12 +124,18 @@ def refresh_get_access_token(refresh_token: str):
 
 
 def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+
+    if not token:
+        raise_exception(error="Authorization token is missing.", code="GA-019")
+
+    decoded_token = {}
+
     try:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=algorithm)
-
-        return decoded_token.get("sub")
 
     except jwt.ExpiredSignatureError:
         raise_exception(error="Token has expired.", code="GA-017")
     except Exception as e:
         raise_exception(error=str(e), code="GA-018")
+
+    return decoded_token.get("sub")

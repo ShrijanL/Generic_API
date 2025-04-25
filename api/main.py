@@ -32,7 +32,7 @@ async def fetch(payload: Dict[str, Any], user_id: str or dict = Depends(decode_t
 
 
 @app.post("/save")
-async def save(payload: Dict[str, Any]):
+async def save(payload: Dict[str, Any], user_id: str or dict = Depends(decode_token)):
     message = generic_save(payload)
 
     return message
@@ -40,9 +40,9 @@ async def save(payload: Dict[str, Any]):
 
 @app.post("/login")
 async def login(payload: Dict[str, Any]):
-    access_token, refresh_token = generic_login(payload)
+    message = generic_login(payload)
 
-    return {"access_token": access_token, "refresh_token": refresh_token}
+    return message
 
 
 @app.post("/refresh")

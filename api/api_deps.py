@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from .api_config import CREATE_BATCH_SIZE
 from .db_conn import EngineController, EngineRegistry
 from .fetch import Fetch
-from .payload_models import FetchPayload, SavePayload
+from .payload_models import FetchPayload, SavePayload, LoginPayload
 from .services import handle_save_input, insert_records, create_tokens
 from .utils import error_response, success_response, check_rec_to_be_updated
 
@@ -17,7 +17,7 @@ def generic_fetch(payload):
         try:
             # Validate the payload using the Pydantic model
             validated_payload = FetchPayload(**payload)
-        except ValidationError as e:
+        except ValidationError or ValueError as e:
             error_msg = e.errors()[0].get("msg")
             error_loc = e.errors()[0].get("loc")
             error = f"{error_msg}{error_loc}"
@@ -60,7 +60,6 @@ def generic_fetch(payload):
         paginated_results = f.apply_pagination(sort_query)
 
         session = eng.get_session()
-
         result = session.execute(paginated_results).fetchall()
 
         data = f.parse_results(result)
@@ -125,11 +124,28 @@ def generic_save(payload):
 
 
 def generic_login(payload):
-    email = payload.get("payload").get("email")
-    password = payload.get("payload").get("password")
 
-    user_id = 1  # for now
+    try:
+        try:
+            validated_payload = LoginPayload(**payload)
+        except ValidationError as e:
+            error_msg = e.errors()[0].get("msg")
+            error_loc = e.errors()[0].get("loc")
+            error = f"{error_msg}{error_loc}"
 
-    access_token, refresh_token = create_tokens(user_id)
+            return error_response(error=error, code="GA-...")
 
-    return access_token, refresh_token
+        email = validated_payload.payload.email
+        password = validated_payload.payload.password
+
+        user_id = 1  # for now
+
+        access_token, refresh_token = create_tokens(user_id)
+
+        tokens = {
+            "access": access_token,
+            "refresh": refresh_token,
+        }
+        return success_response(data=tokens, message="Tokens are generated.")
+    except Exception as e:
+        return error_response(error=str(e), code="GA-...")

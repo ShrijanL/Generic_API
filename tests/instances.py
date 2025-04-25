@@ -19,6 +19,7 @@ customer1 = Customer(
     status="A",
     class_student=1,
     is_active=True,
+    experience=10,
 )
 
 customer2 = Customer(
@@ -32,6 +33,7 @@ customer2 = Customer(
     status="B",
     class_student=2,
     is_active=True,
+    experience=10,
 )
 
 customer3 = Customer(
@@ -45,6 +47,7 @@ customer3 = Customer(
     status="B",
     class_student=3,
     is_active=True,
+    experience=10,
 )
 
 user1 = UserModel(id=1, email="admin@gmail.com", password="admin123", name="admin")
