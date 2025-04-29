@@ -24,7 +24,7 @@ def handle_save_input(model, rec_id, saveInput):
     model_schema_pydantic_model = convert_to_pydantic_model(model)
 
     if rec_id and len(saveInput) > 1:
-        raise_exception(error="Only 1 record to update at once", code="GA-013")
+        raise_exception(error="Only 1 record to update at once", code="GA-020")
 
     id_fld = list(inspect(model).primary_key)[0]
 
@@ -36,7 +36,7 @@ def handle_save_input(model, rec_id, saveInput):
         except Exception as e:
             error_msg = e.errors()[0].get("msg")
             error_loc = e.errors()[0].get("loc")
-            raise_exception(error=f"{error_msg}. {error_loc}", code="GA-014")
+            raise_exception(error=f"{error_msg}. {error_loc}", code="GA-021")
 
         for fld, value in valid_rec:
             column = getattr(model.c, fld, None)
@@ -61,6 +61,12 @@ def handle_save_input(model, rec_id, saveInput):
 
 
 def insert_records(statements, session):
+    """
+    Functionality for save / update records.
+    :param statements:
+    :param session:
+    :return:
+    """
     all_res = []
 
     try:
@@ -71,11 +77,28 @@ def insert_records(statements, session):
         session.commit()
     except Exception as e:
         session.rollback()
-        raise_exception(error=e.args[0], code="GA-015")
+        raise_exception(error=e.args[0], code="GA-022")
     finally:
         session.close()
 
     return all_res
+
+
+def delete_records(statement, session):
+    """
+    Functionality for deleting records.
+    :param statement:
+    :param session:
+    :return:
+    """
+    try:
+        session.execute(statement)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise_exception(error=str(e), code="GA-023")
+    finally:
+        session.close()
 
 
 def create_tokens(user_id: int, require_refresh: bool = True):
@@ -119,14 +142,11 @@ def refresh_get_access_token(refresh_token: str):
 
     except jwt.ExpiredSignatureError:
         raise_exception(
-            error="Refresh token has expired, Please login again.", code="GA-016"
+            error="Refresh token has expired, Please login again.", code="GA-024"
         )
 
 
 def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
-
-    if not token:
-        raise_exception(error="Authorization token is missing.", code="GA-019")
 
     decoded_token = {}
 
@@ -134,8 +154,8 @@ def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=algorithm)
 
     except jwt.ExpiredSignatureError:
-        raise_exception(error="Token has expired.", code="GA-017")
+        raise_exception(error="Token has expired.", code="GA-025")
     except Exception as e:
-        raise_exception(error=str(e), code="GA-018")
+        raise_exception(error=str(e), code="GA-026")
 
     return decoded_token.get("sub")

@@ -3,7 +3,7 @@ from typing import Union, Dict, Any
 from fastapi import Depends
 from fastapi import FastAPI
 
-from .api_deps import generic_fetch, generic_save, generic_login
+from .api_deps import generic_fetch, generic_save, generic_login, generic_delete
 from .services import decode_token, refresh_get_access_token
 
 app = FastAPI()
@@ -34,6 +34,13 @@ async def fetch(payload: Dict[str, Any], user_id: str or dict = Depends(decode_t
 @app.post("/save")
 async def save(payload: Dict[str, Any], user_id: str or dict = Depends(decode_token)):
     message = generic_save(payload)
+
+    return message
+
+
+@app.post("/delete")
+async def delete(payload: Dict[str, Any], user_id: str or dict = Depends(decode_token)):
+    message = generic_delete(payload)
 
     return message
 

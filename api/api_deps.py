@@ -1,15 +1,16 @@
 from pydantic import ValidationError
-
 from .api_config import CREATE_BATCH_SIZE
-from .db_conn import EngineController, EngineRegistry
+from .db_conn import EngineRegistry
 from .fetch import Fetch
-from .payload_models import FetchPayload, SavePayload, LoginPayload
-from .services import handle_save_input, insert_records, create_tokens
-from .utils import error_response, success_response, check_rec_to_be_updated
-
-
-def get_controller():
-    return EngineController()
+from .delete import Delete
+from .payload_models import FetchPayload, SavePayload, LoginPayload, DeletePayload
+from .services import handle_save_input, insert_records, create_tokens, delete_records
+from .utils import (
+    error_response,
+    success_response,
+    check_rec_to_be_updated,
+    get_db_json_path,
+)
 
 
 def generic_fetch(payload):
@@ -36,8 +37,8 @@ def generic_fetch(payload):
         distinct = validated_payload_data.distinct
 
         input_db_name, table_name = model_name.split(".")
-        controller = get_controller()
-        eng = EngineRegistry(db_name=input_db_name, controller=controller)
+        db_path = get_db_json_path()
+        eng = EngineRegistry(db_name=input_db_name, config_path=db_path)
 
         model = eng.check_model(input_db_name=input_db_name, table_name=table_name)
 
@@ -82,7 +83,7 @@ def generic_save(payload):
             error_loc = e.errors()[0].get("loc")
             error = f"{error_msg}{error_loc}"
 
-            return error_response(error=error, code="GA-003")
+            return error_response(error=error, code="GA-002")
 
         model_name = validated_payload.payload.modelName
         rec_id = validated_payload.payload.id
@@ -91,13 +92,12 @@ def generic_save(payload):
         if len(saveInput) > CREATE_BATCH_SIZE:
             return error_response(
                 error=f"Only {CREATE_BATCH_SIZE} records allowed at a time.",
-                code="GA-004",
+                code="GA-003",
             )
 
         input_db_name, table_name = model_name.split(".")
-
-        controller = get_controller()
-        eng = EngineRegistry(db_name=input_db_name, controller=controller)
+        db_path = get_db_json_path()
+        eng = EngineRegistry(db_name=input_db_name, config_path=db_path)
 
         model = eng.check_model(input_db_name=input_db_name, table_name=table_name)
 
@@ -123,6 +123,53 @@ def generic_save(payload):
         )
 
 
+def generic_delete(payload):
+    try:
+        try:
+            # Validate the payload using the Pydantic model
+            validated_payload = DeletePayload(**payload)
+        except ValidationError or ValueError as e:
+            error_msg = e.errors()[0].get("msg")
+            error_loc = e.errors()[0].get("loc")
+            error = f"{error_msg}{error_loc}"
+
+            return error_response(error=error, code="GA-004")
+
+        modelName = validated_payload.payload.modelName
+        filters = validated_payload.payload.filters
+
+        input_db_name, table_name = modelName.split(".")
+        db_path = get_db_json_path()
+        eng = EngineRegistry(db_name=input_db_name, config_path=db_path)
+
+        model = eng.check_model(input_db_name=input_db_name, table_name=table_name)
+
+        delete_config = {
+            "model": model,
+            "filters": filters,
+        }
+
+        d = Delete(delete_config)
+        d.check_input_field_names()
+        delete_query, ids_query = d.apply_delete_filters()
+
+        session = eng.get_session()
+        ids_results = session.execute(ids_query).fetchall()
+        if not ids_results:
+            return error_response(
+                error="No records to delete.", code="GA-005"
+            )
+
+        delete_records(delete_query, session)
+
+        return success_response(data=[row[0] for row in ids_results], message="deleted successfully")
+
+    except Exception as e:
+        return error_response(
+            error=e.detail["error"], code=e.detail["code"], status_code=e.status_code
+        )
+
+
 def generic_login(payload):
 
     try:
@@ -133,7 +180,7 @@ def generic_login(payload):
             error_loc = e.errors()[0].get("loc")
             error = f"{error_msg}{error_loc}"
 
-            return error_response(error=error, code="GA-...")
+            return error_response(error=error, code="GA-006")
 
         email = validated_payload.payload.email
         password = validated_payload.payload.password
@@ -148,4 +195,4 @@ def generic_login(payload):
         }
         return success_response(data=tokens, message="Tokens are generated.")
     except Exception as e:
-        return error_response(error=str(e), code="GA-...")
+        return error_response(error=str(e), code="GA-007")

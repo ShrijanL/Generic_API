@@ -1,5 +1,4 @@
-import pytest
-from fixtures import engine_controller, db_session, client
+from fixtures import client
 
 
 class TestGenericLogin:
@@ -39,7 +38,7 @@ class TestGenericLogin:
         res = response.json()
 
         assert response.status_code == 400
-        assert res["code"] == "GA-..."
+        assert res["code"] == "GA-006"
         assert res["error"] == "Extra inputs are not permitted('payload', 'dummy')"
 
     def test_missing_field_in_payload(self, client):
@@ -59,5 +58,5 @@ class TestGenericLogin:
         res = response.json()
 
         assert response.status_code == 400
-        assert res["code"] == "GA-..."
+        assert res["code"] == "GA-006"
         assert res["error"] == "Field required('payload', 'password')"

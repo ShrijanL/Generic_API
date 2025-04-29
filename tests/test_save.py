@@ -1,21 +1,14 @@
 from datetime import date
 
-import pytest
 from sqlalchemy import text, bindparam
 
 from fixtures import engine_controller, db_session, client
 from instances import class1, class2, class3, customer3, customer1
 from utils import create_test_records, get_access_token
 
+usage = engine_controller
 
 class TestGenericSave:
-
-    @pytest.fixture(autouse=True)
-    def _setup(self, engine_controller):
-        """
-        Automatically sets up engine controller for each test method.
-        """
-        self.engine_controller = engine_controller
 
     def test_save_success(self, client):
         """
@@ -157,7 +150,7 @@ class TestGenericSave:
             res["error"]
             == "Value error, modelName must be in format as 'db.table'.('payload', 'modelName')"
         )
-        assert res["code"] == "GA-003"
+        assert res["code"] == "GA-002"
 
     def test_update_record_success(self, client, db_session):
         """
@@ -235,8 +228,8 @@ class TestGenericSave:
         res = response.json()
 
         assert response.status_code == 400
-        assert res["error"] == "DB not found."
-        assert res["code"] == "GA-006"
+        assert res["error"] == "DB test_db1 not found in config."
+        assert res["code"] == "GA-008"
 
     def test_create_record_with_incorrect_table(self, client):
         """
@@ -267,7 +260,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "customers1 not found in DB test_db"
-        assert res["code"] == "GA-007"
+        assert res["code"] == "GA-010"
 
     def test_invalid_payload_format(self, client):
         """
@@ -297,7 +290,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Field required('payload', 'modelName')"
-        assert res["code"] == "GA-003"
+        assert res["code"] == "GA-002"
 
     def test_extra_field_in_payload(self, client):
         """
@@ -329,7 +322,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Extra inputs are not permitted('payload', 'dummy')"
-        assert res["code"] == "GA-003"
+        assert res["code"] == "GA-002"
 
     def test_model_name_not_str(self, client):
         """
@@ -360,7 +353,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Input should be a valid string('payload', 'modelName')"
-        assert res["code"] == "GA-003"
+        assert res["code"] == "GA-002"
 
     def test_recs_more_than_limit(self, client):
         """
@@ -481,7 +474,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Only 10 records allowed at a time."
-        assert res["code"] == "GA-004"
+        assert res["code"] == "GA-003"
 
     def test_update_multiple_records(self, client, db_session):
         """
@@ -524,7 +517,7 @@ class TestGenericSave:
         res = response.json()
 
         assert res["error"] == "Only 1 record to update at once"
-        assert res["code"] == "GA-013"
+        assert res["code"] == "GA-020"
         assert response.status_code == 400
 
     def test_invalid_field_in_save_input(self, client):
@@ -559,7 +552,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Extra inputs are not permitted. ('ABCD',)"
-        assert res["code"] == "GA-014"
+        assert res["code"] == "GA-021"
 
     def test_invalid_data_type(self, client):
         """
@@ -596,7 +589,7 @@ class TestGenericSave:
             res["error"]
             == "Input should be a valid boolean, unable to interpret input. ('is_active',)"
         )
-        assert res["code"] == "GA-014"
+        assert res["code"] == "GA-021"
 
     def test_missing_required_field(self, client):
         """
@@ -630,7 +623,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Field required. ('email',)"
-        assert res["code"] == "GA-014"
+        assert res["code"] == "GA-021"
 
     def test_update_unknown_record(self, client):
         """
@@ -664,7 +657,7 @@ class TestGenericSave:
 
         assert response.status_code == 400
         assert res["error"] == "Not yet record, 1000"
-        assert res["code"] == "GA-020"
+        assert res["code"] == "GA-028"
 
     def test_user_active_boolean_field_set_false(self, client):
         """
@@ -735,9 +728,9 @@ class TestGenericSave:
         response = client.post("/save", json=payload)
         res = response.json()
 
-        assert response.status_code == 400
+        assert response.status_code == 401
         assert res["detail"]["error"] == "Authorization token is missing or invalid."
-        assert res["detail"]["code"] == "GA-020"
+        assert res["detail"]["code"] == "GA-027"
 
     def test_invalid_token_format(self, client, db_session):
         """
@@ -779,6 +772,6 @@ class TestGenericSave:
         response = client.post("/save", json=payload, headers=headers)
         res = response.json()
 
-        assert response.status_code == 400
+        assert response.status_code == 401
         assert res["detail"]["error"] == "Authorization token is missing or invalid."
-        assert res["detail"]["code"] == "GA-020"
+        assert res["detail"]["code"] == "GA-027"

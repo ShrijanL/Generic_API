@@ -1,20 +1,10 @@
-from unittest.mock import patch
-import pytest
 from factory_recs import make_class, make_customer
-from api.services import decode_token
 from fixtures import engine_controller, db_session, client
 from utils import create_test_records, get_access_token
-import jwt
 
+usage = engine_controller
 
 class TestFetchAPI:
-
-    @pytest.fixture(autouse=True)
-    def _setup(self, engine_controller):
-        """
-        Automatically sets up engine controller for each test method.
-        """
-        self.engine_controller = engine_controller
 
     def test_fetch_success(self, client, db_session):
         """
@@ -311,8 +301,8 @@ class TestFetchAPI:
         res = response.json()
 
         assert response.status_code == 400
-        assert res["error"] == "DB not found."
-        assert res["code"] == "GA-006"
+        assert res["error"] == "DB HAHA not found in config."
+        assert res["code"] == "GA-008"
 
     def test_fetch_incorrect_table(self, client, db_session):
         """
@@ -339,7 +329,7 @@ class TestFetchAPI:
 
         assert response.status_code == 400
         assert res["error"] == "HAHA not found in DB test_db"
-        assert res["code"] == "GA-007"
+        assert res["code"] == "GA-010"
 
     def test_payload_missing_field_property(self, client, db_session):
         """
@@ -389,9 +379,9 @@ class TestFetchAPI:
         response = client.post("/fetch", json=payload)
         res = response.json()
 
-        assert response.status_code == 400
+        assert response.status_code == 401
         assert res["detail"]["error"] == "Authorization token is missing or invalid."
-        assert res["detail"]["code"] == "GA-020"
+        assert res["detail"]["code"] == "GA-027"
 
     def test_invalid_token_format(self, client, db_session):
         """
@@ -416,9 +406,9 @@ class TestFetchAPI:
         response = client.post("/fetch", json=payload, headers=headers)
         res = response.json()
 
-        assert response.status_code == 400
+        assert response.status_code == 401
         assert res["detail"]["error"] == "Authorization token is missing or invalid."
-        assert res["detail"]["code"] == "GA-020"
+        assert res["detail"]["code"] == "GA-027"
 
     def test_extra_field_in_payload(self, client, db_session):
         """
@@ -530,7 +520,7 @@ class TestFetchAPI:
 
         assert response.status_code == 400
         assert res["error"] == "Invalid value for filter:[is_active=HAHA]"
-        assert res["code"] == "GA-011"
+        assert res["code"] == "GA-018"
 
     def test_invalid_sort_field(self, client, db_session):
         """
@@ -558,7 +548,7 @@ class TestFetchAPI:
 
         assert response.status_code == 400
         assert res["error"] == "Invalid field for sort, HAHA"
-        assert res["code"] == "GA-012"
+        assert res["code"] == "GA-019"
 
     def test_invalid_fields_field(self, client, db_session):
         """
@@ -586,7 +576,7 @@ class TestFetchAPI:
 
         assert response.status_code == 400
         assert res["error"] == "Invalid field in fields, HAHA"
-        assert res["code"] == "GA-010"
+        assert res["code"] == "GA-016"
 
     def test_invalid_filter_format(self, client, db_session):
         """
@@ -1008,4 +998,4 @@ class TestFetchAPI:
             res["detail"]["error"]
             == "Invalid header string: 'utf-8' codec can't decode byte 0x83 in position 2: invalid start byte"
         )
-        assert res["detail"]["code"] == "GA-018"
+        assert res["detail"]["code"] == "GA-026"

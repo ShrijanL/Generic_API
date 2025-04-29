@@ -1,3 +1,4 @@
+import os
 from typing import Any, Optional
 
 from fastapi import HTTPException
@@ -48,7 +49,8 @@ class CustomOAuth2PasswordBearer(OAuth2PasswordBearer):
                 # Use the custom raise_exception function here
                 raise_exception(
                     error="Authorization token is missing or invalid.",
-                    code="GA-020",
+                    code="GA-027",
+                    status_code=status.HTTP_401_UNAUTHORIZED
                 )
             else:
                 return None
@@ -143,4 +145,20 @@ def check_rec_to_be_updated(rec_id, session, model):
     """
     rec = session.query(model).filter_by(id=rec_id).first()
     if not rec:
-        raise_exception(error=f"Not yet record, {rec_id}", code="GA-020")
+        raise_exception(error=f"Not yet record, {rec_id}", code="GA-028")
+
+
+def get_db_json_path():
+
+    if os.getenv("TESTING", "0") == "1":
+        cwd = os.getcwd()
+        if os.path.basename(cwd) == "tests":
+            base_dir = os.path.join(cwd, "db_config.json")
+        else:
+            base_dir = os.path.join(cwd, "tests", "db_config.json")
+        return base_dir
+    else:
+        # normal run → use api db_config
+        return os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "db_config.json")
+        )

@@ -2,7 +2,7 @@
 
 from typing import Dict
 
-from sqlalchemy import select, and_, or_, asc, desc
+from sqlalchemy import select, and_, or_, asc, desc, delete
 
 from .utils import configure_joins, raise_exception
 
@@ -26,31 +26,33 @@ class Fetch:
             for fld in self.fields:
                 if not hasattr(self.model.c, fld):
                     raise_exception(
-                        error=f"Invalid field in fields, {fld}", code="GA-010"
+                        error=f"Invalid field in fields, {fld}", code="GA-016"
                     )
 
         if self.filters:
             for item in self.filters:
                 if not hasattr(self.model.c, item.name):
                     raise_exception(
-                        error=f"Invalid name in filters, {item.name}", code="GA-021"
+                        error=f"Invalid name in filters, {item.name}", code="GA-017"
                     )
                 for val in item.value:
                     if not self.model.c[item.name].type.python_type == type(val):
                         raise_exception(
                             error=f"Invalid value for filter:[{item.name}={val}]",
-                            code="GA-011",
+                            code="GA-018",
                         )
 
         if self.sort:
             if not hasattr(self.model.c, self.sort.field):
                 raise_exception(
-                    error=f"Invalid field for sort, {self.sort.field}", code="GA-012"
+                    error=f"Invalid field for sort, {self.sort.field}", code="GA-019"
                 )
 
     def apply_filters(self):
 
-        query = select(*(self.model.c[col] for col in self.fields))
+        query = None
+        if self.fields: # for fetch query statement
+            query = select(*(self.model.c[col] for col in self.fields))
 
         if not self.filters:
             return query

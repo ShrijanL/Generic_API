@@ -119,3 +119,26 @@ class LoginInnerPayload(BaseModel, PydanticConfigV1):
 
 class LoginPayload(BaseModel, PydanticConfigV1):
     payload: LoginInnerPayload
+
+
+## Delete
+class DeleteInnerPayload(BaseModel, PydanticConfigV1):
+    modelName: str
+    filters: List[FetchFilter]
+
+    @field_validator("filters")
+    def validate_filters(cls, v):
+        if v:
+            for f in v:
+                value = getattr(f, "value", [])
+                len_value = len(value)
+                operator = getattr(f, "operator", "")
+
+                if len_value < 1:
+                    raise ValueError("Filters must have at least one value")
+                elif len_value > 1 and operator != OperatorByEnum.IN:
+                    raise ValueError("Multiple filters not supported")
+        return v
+
+class DeletePayload(BaseModel, PydanticConfigV1):
+    payload: DeleteInnerPayload
